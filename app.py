@@ -1,33 +1,41 @@
-import os
-from flask import Flask, request, render_template, jsonify
-from twitter import TwitterClient
+from flask import Flask
+import json
+from datetime import datetime
 
 app = Flask(__name__)
-# Setup the client <query string, retweets_only bool, with_sentiment bool>
-api = TwitterClient('@yum_dude')
 
+@app.route("/", methods=["GET"])
+def home():
+	with open('pi.json') as f:
+  		data = json.load(f)
+	current_datetime = datetime.now()
+	current_date = datetime.strftime(current_datetime, "%d%m%y")
+	current_time = datetime.strftime(current_datetime, "%H%M%S")
+	current_date_pos = data['pi'].find(current_date)
+	current_time_pos = data['pi'].find(current_time)
 
-def strtobool(v):
-    return v.lower() in ["yes", "true", "t", "1"]
+	return """
+	<meta http-equiv="refresh" content="1" >
+	<head>
+		<title>Every day is a Pi day</title>
+	</head>
+	<body>
+		<center>
+			<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Pi-symbol.svg/248px-Pi-symbol.svg.png" height="150" width="150">
+		<h3> Every day is a Pi day</h3>
+		<p> The current date time is <b>{} GMT+5:30</b>.</p>
 
+		<p> When the current date is parsed as DDMMYY, it's just a number <b>{}</b><br>
+		and this number occurs at <b>{}</b> decimal position of Pi</p>
 
-@app.route('/')
-def index():
+		<p> When the current time is parsed as HHMMSS, it's the number <b>{}</b><br>
+		that occurs at <b>{}</b> decimal position of Pi</p>
 
-    return render_template('index.html')
+		<h5>Made with ❤ by <a href="https://aman-singh.com/">Aman Singh</a></h5>
+		</center>
+	</body>
+	</html>
+	""".format(datetime.strftime(current_datetime,"%d %B, %Y %X"), current_date, current_date_pos, current_time, current_time_pos)
 
-
-@app.route('/tweets')
-def tweets():
-        retweets_only = request.args.get('retweets_only')
-        api.set_retweet_checking(strtobool(retweets_only.lower()))
-        with_sentiment = request.args.get('with_sentiment')
-        api.set_with_sentiment(strtobool(with_sentiment.lower()))
-        query = request.args.get('query')
-        api.set_query(query)
-
-        tweets = api.get_tweets()
-        return jsonify({'data': tweets, 'count': len(tweets)})
-
-port = int(os.environ.get('PORT', 5000))
-app.run(host="0.0.0.0", port=port, debug=True)
+if __name__ == "__main__":
+	app.run(debug=True)
